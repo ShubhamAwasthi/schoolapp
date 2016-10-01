@@ -2,11 +2,15 @@
 	var map = {
 		'app' : 'app',
 		'@angular' : 'node_modules/@angular',
-		'rxjs' : 'node_modules/rxjs'
+		'rxjs' : 'node_modules/rxjs',
+		'angularfire2' : 'node_modules/angularfire2/bundles',
+		'firebase'  : 'node_modules/firebase'
 	};
 	var packages = {
 		'app' : {main : 'main.js', defaultExtension :'js'},
-		'rxjs' : {defaultExtension : 'js'}
+		'rxjs' : {defaultExtension : 'js'},
+		'angularfire2' : { main : 'angularfire2.umd.js', defaultExtension : 'js' },
+		'firebase' : { main : 'firebase.js' }
 	};
 
 	var ngPackages = [
