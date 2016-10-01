@@ -3,16 +3,27 @@ import { Router, NavigationExtras } from '@angular/router';
 
 import { SchoolService, Context } from './school.service';
 
-import { AngularFire } from 'angularfire2';
+import { AngularFire, AuthProviders, AuthMethods } from 'angularfire2';
 
 @Component({
 	template : `<div class="center">
 					<h3>Log In</h3>
+					<div *ngIf="!showSignUp">
 					<input #email type="text"/>
 					<input #password type="password"/>
-					<button type="button" (click)="signUp(email.value, password.value)">SignUp</button>
+					<button type="button" (click)="login(email.value, password.value)">Login</button>
+					<button type="button" (click)="showSignUpForm()">SignUp</button>
+					</div>
 					<p *ngIf="incorrectLogin">Wrong name!</p>
 					<p *ngIf="logInUnderway">Attempting to log in!</p>
+					<form *ngIf="showSignUp">
+						<input #newEmail type="text"/>
+						<input #newPassword type="password"/><br>
+						Role:<br>
+						<input type="radio" value="teacher" (click)="setRole('teacher')" />Teacher
+						<input type="radio" value="student" (click)="setRole('student')" checked />Student
+						<button type="button" (click)="signUp(newEmail.value, newPassword.value)">Submit</button>
+					</form>
 				<div>
 				`,
 	styles : [`
@@ -42,10 +53,33 @@ export class LoginComponent implements OnDestroy{
 
 	logInUnderway = false;
 
+	showSignUp = false;
+
 	logInSubscription;
+
+	role = "student";
+
+	setRole(val : string){
+		this.role = val;
+	}
 
 	signUp(email: string, password: string){
 		this.af.auth.createUser({ email: email, password: password})
+		.then(v => {
+					console.log(v);
+					let t = {};
+					t[v.uid] = {'role' : this.role};
+					this.af.database.list('/'+this.role).push(t);
+		})
+		.catch(e => console.log(e));
+	}
+
+	showSignUpForm(){
+		this.showSignUp = true;
+	}
+
+	login(email: string, password: string){
+		this.af.auth. login({email : email, password : password}, { provider : AuthProviders.Password, method : AuthMethods.Password})
 		.then(v => console.log(v))
 		.catch(e => console.log(e));
 	}
