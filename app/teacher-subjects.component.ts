@@ -2,9 +2,11 @@ import { Component, OnInit} from '@angular/core';
 
 import { Observable } from 'rxjs/Observable';
 
-import { SchoolService } from './school.service';
-
 import { ActivatedRoute, Params } from '@angular/router';
+
+import { AngularFire } from 'angularfire2';
+
+import { AuthService } from './auth.service';
 
 @Component({
 	template : `
@@ -19,16 +21,13 @@ import { ActivatedRoute, Params } from '@angular/router';
 				`
 })
 export class TeacherSubjectsComponent{
-	subjects : Observable<string[]>;
-	constructor(private schoolService : SchoolService, private activatedRoute : ActivatedRoute){}
+	subjects;
+	constructor(private activatedRoute : ActivatedRoute, 
+	private af : AngularFire, private authSerivce: AuthService){}
 
 
 	ngOnInit(){
-		this.activatedRoute.params.forEach((v : Params)=>{
-			let id = +v['id'];
-			console.log(v);
-			this.subjects = this.schoolService.getSubjectsByTeacher(id);
-		});
-		
+		let context = this.authSerivce.getContext();
+		this.subjects = this.af.database.object('/'+context.uid+'/subjects');
 	}
 }

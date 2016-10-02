@@ -1,9 +1,10 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Router, NavigationExtras } from '@angular/router';
 
-import { SchoolService, Context } from './school.service';
 
 import { AngularFire, AuthProviders, AuthMethods } from 'angularfire2';
+
+import { AuthService, Teacher, Student } from './auth.service';
 
 @Component({
 	template : `<div class="center">
@@ -41,7 +42,7 @@ import { AngularFire, AuthProviders, AuthMethods } from 'angularfire2';
 })
 export class LoginComponent implements OnDestroy{
 
-	constructor(private schoolService : SchoolService, private router : Router, private af : AngularFire){}
+	constructor( private router : Router, private af : AngularFire, private authSerivce : AuthService){}
 
 	ngOnDestroy(){
 		if(this.logInSubscription)
@@ -67,9 +68,8 @@ export class LoginComponent implements OnDestroy{
 		this.af.auth.createUser({ email: email, password: password})
 		.then(v => {
 					console.log(v);
-					let t = {};
-					t[v.uid] = {'role' : this.role};
-					this.af.database.list('/'+this.role).push(t);
+					let t = {'role' : this.role};
+					this.af.database.list("").update(v.uid, t);
 		})
 		.catch(e => console.log(e));
 	}
@@ -80,17 +80,25 @@ export class LoginComponent implements OnDestroy{
 
 	login(email: string, password: string){
 		this.af.auth. login({email : email, password : password}, { provider : AuthProviders.Password, method : AuthMethods.Password})
-		.then(v => console.log(v))
+		.then(v => {console.log(v);
+			this.routeToPage(v.uid);	
+		})
 		.catch(e => console.log(e));
 	}
 
-	routeToPage(value : Context){
-			let navigationextras : NavigationExtras = {
-				queryParams : {'context' : JSON.stringify(value)}
-			};
-			if(value.role === "teacher")
-				this.router.navigate(["/teacher",value.id], navigationextras);
-			if(value.role === "student")
-				this.router.navigate(["/student-detail",value.id], navigationextras);
+	routeToPage(uid : string){
+			console.log("Trying to get context for : "+ uid);
+			this.authSerivce.setContextAndNavigate(uid, this.routeCall);
+	}
+
+	routeCall(context : Teacher|Student, router : Router){
+		if(context instanceof Teacher){
+			console.log("teacher")
+			router.navigate(['./teacher']);
+		}
+		else{
+			console.log("student");
+			router.navigate(['./student-detail']);
+		}
 	}
 }

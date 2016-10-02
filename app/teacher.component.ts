@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+
+import { AngularFire } from 'angularfire2';
+
+import { AuthService, Teacher } from './auth.service';
 
 
-
-
-import { SchoolService, Context } from './school.service';
 import { Observable } from 'rxjs/Observable';
 
 import 'rxjs/add/operator/map';
@@ -13,10 +14,11 @@ import 'rxjs/add/operator/toPromise';
 
 @Component({
 	selector : 'my-home',
-	template : `Welcome {{user | async}}<hr>
+	template : `Welcome {{teacher?.name}}<hr>
+				<button type="button" (click)="logOut()">Log Out</button>
 				<nav>
-					<a [routerLink]="['subjects',{'id' : id }]" routerLinkActive="active" [preserveQueryParams]="true">Subjects</a>
-					<a [routerLink]="['students',{'id': id }]" routerLinkActive="active" [preserveQueryParams]="true">Students</a>
+					<a [routerLink]="['subjects']" routerLinkActive="active" >Subjects</a>
+					<a [routerLink]="['students']" routerLinkActive="active" >students</a>
 				</nav>
 				<router-outlet></router-outlet>
 				`,
@@ -26,29 +28,32 @@ import 'rxjs/add/operator/toPromise';
 				}
 				`]
 })
-export class TeacherComponent implements OnInit{
-	context : Observable<Context>;
-	
-	user : Observable<string>;
+export class TeacherComponent implements OnInit, OnDestroy{
 
-	id : string;
-
-	subscriptions = [];
-
-	constructor(private route : ActivatedRoute, private schoolService : SchoolService){}
+	teacherObservable;
+	teacher : Teacher= null;
+	subscription;
+	constructor(private route : ActivatedRoute,	private af: AngularFire, 
+	private authService : AuthService, private router : Router){}
 
 	ngOnInit(){
-		 this.context = this.route.queryParams.map(params => JSON.parse(params['context'] || '{}'))
-		 let sub = this.context.subscribe(val => {
-		 	this.id = ''+this.route.snapshot.params['id'];
-		 	if(val.role == "teacher")
-		 		this.user = this.schoolService.getTeacherInfo(val.id).map(val => val.name);
-		 	if(val.role == "student")
-		 		this.user = this.schoolService.getStudentInfo(val.id).map(val => val.name);
+		 let context = <Teacher>this.authService.getContext();
+		 this.teacherObservable = this.af.database.object('/'+context.uid);
+		 this.subscription = this.teacherObservable.subscribe(val => {
+			 this.teacher = new Teacher();
+			 console.log("Got Response from db");
+			 console.log(val);
+			 this.teacher.name = val.name;
+			 this.teacher.students = val.students;
+			 this.teacher.subjects = val.subjects;
 		 });
-		 this.subscriptions.push(sub);
 	}
 	ngOnDestroy(){
-		this.subscriptions.forEach(x => x.unsubscribe());
+		this.subscription.unsubscribe();
+	}
+	logOut(){
+		this.authService.clearContext();
+		this.af.auth.logout();
+		this.router.navigate(['/login']);
 	}
 }

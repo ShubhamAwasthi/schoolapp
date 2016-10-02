@@ -2,51 +2,32 @@ import { CanActivate, CanActivateChild, ActivatedRouteSnapshot, RouterStateSnaps
 
 import { Injectable } from '@angular/core';
 
-import { SchoolService } from './school.service';
 
 
 import { Observable } from 'rxjs/Observable';
 
 import 'rxjs/add/operator/map';
+import { AuthService } from './auth.service';
 
 @Injectable()
 export class RouteGuard implements CanActivate, CanActivateChild{
-	constructor(private router: Router, private schoolService : SchoolService){}
+	constructor(private router: Router, private authService : AuthService){}
 
 	teacher = "teacher";
 	studentPath = "student-detail";
 	students : number[];
 	canActivate(route: ActivatedRouteSnapshot, state : RouterStateSnapshot) : boolean | Promise<boolean>{
-		let context = JSON.parse(route.queryParams['context'] || '{}');
-		if(route.url.length == 0) return true;
-		console.log(route.url[0].path);
-		if(route.url[0].path === this.teacher){
-			if(+context.id !== +(route.url[1].path)){
-				console.log("Trying to access id " + route.url[1].path + " but id in context " + context.id);
-				return false;
-			}
-			if(context.role !== this.teacher){
-				console.log("Trying to access id " + route.url[1].path + " but role is " + context.role + " needed teacher role");
-				return false;
-			}
-			return true;
+		//return true;
+		let context = this.authService.getContext();
+		if(context.uid === undefined){
+			console.log('not logged in');
+			this.router.navigate(['/login']);
+			return false;
 		}
-		else if(route.url[0]["path"] === this.studentPath){
-			if(+context.id !== +(route.url[1].path) && context.role != this.teacher){
-				console.log("Trying to access id " + route.url[1].path + " but id in context " + context.id);
-				return false;
-			}
-			if(context.role === this.teacher){
-
-				return this.schoolService.getTeacherInfo(+context.id).toPromise()
-					.then(res => this.students = res.students)
-					.then(()=> {let s = (this.students.find(t => t === +(route.url[1].path)) !== undefined);
-							if(!s)
-								console.log("Trying to access id " + route.url[1].path + " but this is not student of " + context.id);
-						return s;});
-			}
-		}
+		console.log("found: ");
+		console.log(context);
 		return true;
+		
 	}
 	canActivateChild(route: ActivatedRouteSnapshot, state : RouterStateSnapshot) : boolean | Promise<boolean>{
 		return this.canActivate(route, state);

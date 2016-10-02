@@ -20,7 +20,7 @@ const routes : Route[] = [
 		component : LoginComponent
 	},
 	{
-		path : 'teacher/:id',
+		path : 'teacher',
 		component : TeacherComponent,
 		canActivate : [RouteGuard],
 		canActivateChild : [RouteGuard],
@@ -41,6 +41,11 @@ const routes : Route[] = [
 	},
 	{
 		path : 'student-detail/:id',
+		component : StudentDetailComponent,
+		canActivate : [RouteGuard]
+	},
+	{
+		path : 'student-detail',
 		component : StudentDetailComponent,
 		canActivate : [RouteGuard]
 	}

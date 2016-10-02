@@ -2,22 +2,25 @@ import { Component, OnInit} from '@angular/core';
 
 import { Observable } from 'rxjs/Observable';
 
-import { SchoolService, StudentKey } from './school.service';
 
 import { ActivatedRoute, Params, Router } from '@angular/router';
+
+import { AngularFire } from 'angularfire2';
+
+import { AuthService, StudentKey } from './auth.service';
 
 
 @Component({
 	template :  `
 				<div class="center">
-					<b>Subjects</b>
+					<b>Students</b>
 					<ul>
-						<li *ngFor="let student of students | async" (click)="selectId(student)" [class.selected]="isSelected(student.id)">
+						<li *ngFor="let student of students | async" (click)="selectId(student)" [class.selected]="isSelected(student.uid)">
 							<span>{{student.name}}</span>
 						</li>
 					</ul>
 				<div>
-				<button type="button" [hidden]=false (click)="goToStudent()">View Detail</button>
+				<button type="button" [hidden]="!selectedId" (click)="goToStudent()">View Detail</button>
 				`,
 	styles : [`
 				li.selected span{
@@ -26,28 +29,25 @@ import { ActivatedRoute, Params, Router } from '@angular/router';
 			`]
 })
 export class TeacherStudentsComponent implements OnInit{
-	students : Observable<StudentKey[]>;
-	constructor(private schoolService : SchoolService, private activatedRoute : ActivatedRoute,
-				 private router : Router){}
+	
+	constructor(private activatedRoute : ActivatedRoute,
+				 private router : Router, private af: AngularFire, private authService : AuthService){}
 
-	selectedId : number = -1;
-
+	selectedId : string = null;
+	students = null;
 	selectId(student : StudentKey){
-		this.selectedId = student.id;
+		this.selectedId = student.uid;
 	}
 
-	isSelected(id: number){
+	isSelected(id: string){
 		return this.selectedId === id;
 	}
 
 	ngOnInit(){
-		this.activatedRoute.params.forEach((v : Params)=>{
-			let id = +v['id'];
-			this.students = this.schoolService.getStudentsByTeacher(id);
-		});
+		this.students = this.af.database.object('/'+this.authService.getContext().uid+'/students'); 
 	}
 
 	goToStudent(){
-		this.router.navigate(['/student-detail',this.selectedId], { preserveQueryParams : true });
+		this.router.navigate(['/student-detail',this.selectedId]);
 	}
 }
