@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router, NavigationExtras } from '@angular/router';
 
 
@@ -12,7 +12,7 @@ import { AuthService, Teacher, Student } from './auth.service';
 					<div *ngIf="!showSignUp">
 					<input #email type="text"/>
 					<input #password type="password"/>
-					<button type="button" (click)="login(email.value, password.value)">Login</button>
+					<button type="button" (click)="login(email.value, password.value)" [disabled]="!LoginNeeded">Login</button>
 					<button type="button" (click)="showSignUpForm()">SignUp</button>
 					</div>
 					<p *ngIf="incorrectLogin">Wrong name!</p>
@@ -25,7 +25,7 @@ import { AuthService, Teacher, Student } from './auth.service';
 						<input type="radio" value="student" (click)="setRole('student')" checked />Student
 						<button type="button" (click)="signUp(newEmail.value, newPassword.value)">Submit</button>
 					</form>
-				<div>
+				</div>
 				`,
 	styles : [`
 				.center{
@@ -40,7 +40,7 @@ import { AuthService, Teacher, Student } from './auth.service';
 				}
 			`]
 })
-export class LoginComponent implements OnDestroy{
+export class LoginComponent implements OnDestroy, OnInit{
 
 	constructor( private router : Router, private af : AngularFire, private authSerivce : AuthService){}
 
@@ -59,9 +59,21 @@ export class LoginComponent implements OnDestroy{
 	logInSubscription;
 
 	role = "student";
-
+	
+	LoginNeeded = false;
+	
 	setRole(val : string){
 		this.role = val;
+	}
+
+	ngOnInit(){
+		this.af.auth.first().toPromise()
+		.then(val=>{
+			if(val === null)
+				throw(new Error('not Logged in'));
+			this.authSerivce.setContextAndNavigate(val.uid,this.routeCall);
+		})
+		.catch(() => this.LoginNeeded = true);
 	}
 
 	signUp(email: string, password: string){

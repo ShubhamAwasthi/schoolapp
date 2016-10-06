@@ -17,7 +17,7 @@ import { AuthService } from './auth.service';
 							{{sub}}
 						</li>
 					</ul>
-				<div>
+				</div>
 				`
 })
 export class TeacherSubjectsComponent{

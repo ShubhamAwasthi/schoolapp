@@ -2,6 +2,8 @@ import { Injectable, OnInit } from '@angular/core'
 import { AngularFire } from 'angularfire2';
 import { Router } from '@angular/router';
 
+import 'rxjs/add/operator/first';
+import 'rxjs/add/operator/toPromise';
 
 export class Teacher{
     uid : string;
@@ -35,11 +37,11 @@ export class AuthService{
     
     private context : Teacher | Student = null;
 
-    private subscription = null;
 
-    setContextAndNavigate(uid : string, routeCall : IRouteCall) {
+    setContextAndNavigate(uid : string, routeCall : IRouteCall): Promise<void>  {
         console.log("Inside auth service");
-       this.subscription =  this.af.database.object('/'+uid).subscribe(val => {
+       return this.af.database.object('/'+uid).first().toPromise()
+       .then(val => {
             console.log("got from db context " );
             console.dir(val);
             if(val.role === "teacher"){
@@ -54,7 +56,6 @@ export class AuthService{
             this.context.uid = uid;
             this.context.name = val.name;
             this.context.subjects = val.subjects;
-            this.subscription.unsubscribe();
             console.log('now I will navigate');
             console.dir(this.getContext());
             if(this.context instanceof Teacher)
@@ -63,8 +64,9 @@ export class AuthService{
                 console.log("student");
             if(routeCall)
                 routeCall(this.getContext(), this.router);
-        },(err) => {console.log(err); this.subscription.unsubscribe();},
-         ()=>{this.subscription.unsubscribe();});
+            return Promise.resolve();
+        })
+        .catch((err) =>{console.log(err); return Promise.resolve()});
     }
 
     getContext() : Teacher | Student {

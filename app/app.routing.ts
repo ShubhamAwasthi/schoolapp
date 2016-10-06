@@ -17,7 +17,8 @@ const routes : Route[] = [
 	},
 	{
 		path : 'login',
-		component : LoginComponent
+		component : LoginComponent/*,
+		canActivate : [RouteGuard]*/
 	},
 	{
 		path : 'teacher',

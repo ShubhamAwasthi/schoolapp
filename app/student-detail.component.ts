@@ -7,12 +7,16 @@ import { AuthService, Teacher, Student } from './auth.service';
 
 import { AngularFire } from 'angularfire2';
 
+import { Subject } from 'rxjs/Subject';
+
+import 'rxjs/add/operator/takeUntil';
+
 @Component({
 	template : `<button type="button" (click)="logOut()">Log Out</button>
 				<div class="center" *ngIf="student">
 					<div>
-						<h3>Name</h3><br>
-						<p>{{student.name}}</p>
+					<h3>Name</h3><br/>
+					<p>{{student.name}}</p>
 					</div>
 					<div>
 						<h3>Subjects</h3><br>
@@ -69,31 +73,25 @@ import { AngularFire } from 'angularfire2';
 			`]
 
 })
-export class StudentDetailComponent implements OnInit, OnDestroy{
+export class StudentDetailComponent implements OnInit{
 	studentObservable;
 	student : Student = null;
 	studentView : boolean;
 	subscription;
+	goingBack = new Subject<boolean>();
 	constructor(private route : ActivatedRoute, private router : Router
 	 ,private af: AngularFire, private authService : AuthService){}
 
 	ngOnInit(){
 		let context = this.authService.getContext();
-		
-		if(context instanceof Teacher){
-			
-			let id = this.route.snapshot.params['id'];
-			console.log('db access for /' + id);
-			this.studentObservable = this.af.database.object('/'+id);
-		}
-		
-		else{
+		console.log('Inside student-detail - context');
+		console.log(context);
+		console.log('Init called');
+		if(context instanceof Student){
 			this.studentView = true;
 			console.log('db access for /' + context.uid);
 			this.studentObservable = this.af.database.object('/'+context.uid);
-		}	
-
-		this.subscription = this.studentObservable.subscribe( val => {
+			this.studentObservable.takeUntil(this.goingBack).subscribe( val => {
 				console.log("Got Response from db");
 				console.log(val);
 				this.student = new Student();
@@ -102,14 +100,39 @@ export class StudentDetailComponent implements OnInit, OnDestroy{
 				this.student.subjects = val.subjects;
 				this.student.teachers = val.teachers;
 			});
+		}
+		if(context instanceof Teacher){
+			
+			this.route.params.map(params => params['id']).first().toPromise()
+			.then(id =>{
+				console.log('db access for /' + id);
+				this.studentObservable = this.af.database.object('/'+id);
+			})
+			.catch(err => {
+				console.log(err);
+				this.router.navigate(['login']);
+			}).then(()=>{
+				this.studentObservable.takeUntil(this.goingBack).subscribe( val => {
+				console.log("Got Response from db");
+				console.log(val);
+				this.student = new Student();
+				this.student.name = val.name;
+				this.student.performance = val.performance;
+				this.student.subjects = val.subjects;
+				this.student.teachers = val.teachers;
+			});
+			}
+			);
+		}	
+	    
 	}
 	goBack(){
+		this.goingBack.next(true);
 		this.router.navigate(['/teacher']);
 	}
-	ngOnDestroy(){
-		this.subscription.unsubscribe();
-	}
+
 	logOut(){
+		this.goingBack.next(true);
 		this.authService.clearContext();
 		this.af.auth.logout();
 		this.router.navigate(['/login']);
